@@ -3,53 +3,58 @@ function Ratelimit(max, duration) {
     this.duration = duration;
 
     // "private" vars for internal use only
-    this._count = 0;
-    this._interval = setInterval(this.reset.bind(this), duration);
-    this._promises = [];
+    this.count_ = 0;
+    this.interval_ = setInterval(this.reset.bind(this), duration);
+    this.promises_ = [];
 }
 
 // Resets count and resolves as many promises as possible before running out or hitting max.
 Ratelimit.prototype.reset = function () {
-    this._count = 0;
-    let m = Math.min(this.max, this._promises.length);
+    this.count_ = 0;
+    let m = Math.min(this.max, this.promises_.length);
     for (let i = 0; i < m; i++) {
-        this._promises.shift()[0]();
-        this._count++;
+        this.promises_.shift()[0]();
+        this.count_++;
     }
 }
 
 // Instant resolves if ratelimit isnt reached, otherwise add to queue.
 Ratelimit.prototype.wait = function () {
     return new Promise((resolve, reject) => {
-        if (!this._interval) {
+        if (!this.interval_) {
             reject();
-        } else if (this._count < this.max) {
+        } else if (this.count_ < this.max) {
             resolve();
-            this._count++;
+            this.count_++;
         } else {
-            this._promises.push([resolve, reject]);
+            this.promises_.push([resolve, reject]);
         }
     })
 }
 
 // Creates new interval to resuse a stopped ratelimit.
 Ratelimit.prototype.start = function () {
-    if (this._interval) clearInterval(this._interval);
-    this._interval = setInterval(this.reset.bind(this), this.duration);
+    if (this.interval_) clearInterval(this.interval_);
+    this.interval_ = setInterval(this.reset.bind(this), this.duration);
 }
 
 // Stops calling .reset() but keeps promises in queue to be resumed later.
 Ratelimit.prototype.pause = function () {
-    clearInterval(this._interval);
+    clearInterval(this.interval_);
 }
 
 // Clears interval and rejects all unresolved promises.
 Ratelimit.prototype.kill = function () {
-    clearInterval(this._interval);
-    this._promises.forEach((p) => {
+    clearInterval(this.interval_);
+    this.promises_.forEach((p) => {
         p[1]();
     });
-    this._promises = [];
+    this.promises_ = [];
+}
+
+// Returns the remaining number of times .wait() can be called in the current duration.
+Ratelimit.prototype.remaining = function () {
+    return this.max - this.count_;
 }
 
 module.exports = Ratelimit;
