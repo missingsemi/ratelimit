@@ -1,11 +1,15 @@
-function Ratelimit(max, duration) {
+function Ratelimit(max, duration, weak = false) {
     this.max = max;
     this.duration = duration;
 
     // "private" vars for internal use only
     this.count_ = 0;
     this.interval_ = setInterval(this.reset.bind(this), duration);
+    this.stopInterval_ = undefined;
     this.promises_ = [];
+    this.weak_ = weak;
+
+    if (weak) this.interval_.unref();
 }
 
 // Resets count and resolves as many promises as possible before running out or hitting max.
@@ -16,6 +20,8 @@ Ratelimit.prototype.reset = function () {
         this.promises_.shift()[0]();
         this.count_++;
     }
+    
+    if (this.stopInterval_ && this.promises_.length == 0) clearInterval(this.stopInterval_);
 }
 
 // Instant resolves if ratelimit isnt reached, otherwise add to queue.
@@ -36,6 +42,7 @@ Ratelimit.prototype.wait = function () {
 Ratelimit.prototype.start = function () {
     if (this.interval_) clearInterval(this.interval_);
     this.interval_ = setInterval(this.reset.bind(this), this.duration);
+    if (this.weak_) this.interval_.unref();
 }
 
 // Stops calling .reset() but keeps promises in queue to be resumed later.
@@ -56,5 +63,11 @@ Ratelimit.prototype.kill = function () {
 Ratelimit.prototype.remaining = function () {
     return this.max - this.count_;
 }
+
+Ratelimit.prototype.stop = function () {
+    this.stopInterval_ = this.interval_;
+    this.interval_ = undefined;
+}
+
 
 module.exports = Ratelimit;

@@ -28,7 +28,7 @@ main().then(() => rl.kill()).catch(console.error);
 Ratelimit.wait() returns a promise so it works with await as well.
 
 
-The Ratelimit constructor takes two arguments. The first argument describes how many promises are resolved before the ratelimit is reached. The second describes the duration of each limit. At the end of this duration, the next set of promises will be resolved.
+The Ratelimit constructor takes three arguments. The first argument describes how many promises are resolved before the ratelimit is reached. The second describes the duration of each limit. At the end of this duration, the next set of promises will be resolved. The third argument is optional. If true, it calls unref on every interval meaning they will not keep the thread open. Prefer using stop() or kill() instead of this argument.
 
 Function          |Usage   
 ------------------|------------------------------------------------------------------------
@@ -37,6 +37,7 @@ Ratelimit.start()     |Starts a stopped Ratelimit object.
 Ratelimit.pause()     |Stops a Ratelimit object without rejecting any promises.
 Ratelimit.kill()      |Stops a Ratelimit object and rejects all pending promises.
 Ratelimit.remaining() |Returns the remaining number of requests before being ratelimited.
+Ratelimit.stop()      |Rejects all new wait calls, but continues working on prior calls.
 ## Notes
 Ratelimit objects are started on construction, so Ratelimit.start() does not need to be called when making a new object.
 
